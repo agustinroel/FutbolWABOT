@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+node_modules/
+apps/
+data/
+dist/
+.wwebjs_auth/
+.wwebjs_cache/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+.git/
