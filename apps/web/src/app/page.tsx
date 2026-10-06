@@ -18,7 +18,8 @@ export default async function HomePage(): Promise<ReactElement> {
   const apiToken = process.env.BOT_API_TOKEN;
 
   if (!apiUrl || !apiToken) {
-    initialError = 'Falta configurar BOT_API_URL o BOT_API_TOKEN en Vercel.';
+    initialError =
+      'Falta configurar BOT_API_URL o BOT_API_TOKEN en el servidor web.';
   } else {
     try {
       const response = await fetch(new URL('/api/dashboard', apiUrl), {

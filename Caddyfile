@@ -1,0 +1,10 @@
+{$DASHBOARD_API_DOMAIN} {
+	@dashboard path /api/dashboard /health
+	handle @dashboard {
+		reverse_proxy bot:8787
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+}

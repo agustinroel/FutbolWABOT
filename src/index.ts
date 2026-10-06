@@ -6,7 +6,14 @@ import { getMessageChatId } from './modules/whatsapp/messageContext.js';
 import { startDashboardApi } from './modules/dashboard/api.js';
 
 const client = createWhatsAppClient();
-const dashboardApi = startDashboardApi();
+const dashboardApi = config.dashboardApiEnabled
+  ? startDashboardApi()
+  : undefined;
+if (!config.dashboardApiEnabled) {
+  console.info(
+    'Dashboard API desactivada en este proceso (DASHBOARD_API_ENABLED=false).'
+  );
+}
 let schedulerStarted = false;
 const reportedMismatchedGroups = new Set<string>();
 
@@ -21,12 +28,21 @@ client.on('message_create', (message) => {
   if (!chatId.endsWith('@g.us')) return;
 
   const command = message.body.trim().split(/\s+/, 1)[0]?.toLowerCase() ?? '';
-  const isCommand = command.startsWith('/') || command === '+1' || command === '-1';
-  console.info(`[WhatsApp] Mensaje de grupo detectado (fromMe=${message.fromMe}, comando=${isCommand ? command : 'no'}).`);
+  const isCommand =
+    command.startsWith('/') || command === '+1' || command === '-1';
+  console.info(
+    `[WhatsApp] Mensaje de grupo detectado (fromMe=${message.fromMe}, comando=${isCommand ? command : 'no'}).`
+  );
 
-  if (config.groupId && chatId !== config.groupId && !reportedMismatchedGroups.has(chatId)) {
+  if (
+    config.groupId &&
+    chatId !== config.groupId &&
+    !reportedMismatchedGroups.has(chatId)
+  ) {
     reportedMismatchedGroups.add(chatId);
-    console.warn(`[WhatsApp] Mensaje recibido en un grupo no configurado: ${chatId}. MONTEMAR_GROUP_ID actual: ${config.groupId}.`);
+    console.warn(
+      `[WhatsApp] Mensaje recibido en un grupo no configurado: ${chatId}. MONTEMAR_GROUP_ID actual: ${config.groupId}.`
+    );
   } else if (config.groupId && chatId === config.groupId && isCommand) {
     console.info(`[WhatsApp] Procesando ${command} en el grupo configurado.`);
   }
@@ -37,12 +53,16 @@ client.on('message_create', (message) => {
 });
 
 if (!config.groupId) {
-  console.warn('MONTEMAR_GROUP_ID está vacío. El bot mostrará por consola los IDs de grupos detectados y no responderá en ellos.');
+  console.warn(
+    'MONTEMAR_GROUP_ID está vacío. El bot mostrará por consola los IDs de grupos detectados y no responderá en ellos.'
+  );
 } else {
   console.info(`Grupo configurado: ${config.groupId}`);
 }
 if (config.adminIds.size === 0) {
-  console.warn('ADMIN_PHONE_NUMBERS está vacío. Los comandos administrativos estarán bloqueados.');
+  console.warn(
+    'ADMIN_PHONE_NUMBERS está vacío. Los comandos administrativos estarán bloqueados.'
+  );
 }
 
 void client.initialize().catch((error: unknown) => {

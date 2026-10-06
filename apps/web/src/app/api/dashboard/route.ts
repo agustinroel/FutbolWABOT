@@ -18,7 +18,10 @@ export async function GET(): Promise<NextResponse> {
   const apiToken = process.env.BOT_API_TOKEN;
   if (!apiUrl || !apiToken) {
     return NextResponse.json(
-      { error: 'Falta configurar BOT_API_URL o BOT_API_TOKEN en Vercel.' },
+      {
+        error:
+          'Falta configurar BOT_API_URL o BOT_API_TOKEN en el servidor web.'
+      },
       { status: 503 }
     );
   }

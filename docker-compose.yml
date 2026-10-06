@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    init: true
+    shm_size: 1gb
     env_file:
       - .env
     environment:
@@ -11,14 +13,22 @@ services:
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
       DASHBOARD_API_HOST: 0.0.0.0
       DASHBOARD_API_PORT: 8787
+      DASHBOARD_API_ENABLED: 'true'
+      DASHBOARD_API_TOKEN: ${DASHBOARD_API_TOKEN:?Set DASHBOARD_API_TOKEN in .env before starting the production bot}
     ports:
-      - "127.0.0.1:8787:8787"
+      - '127.0.0.1:8787:8787'
     volumes:
       - montemar-data:/app/data
       - montemar-session:/app/.wwebjs_auth
       - montemar-cache:/app/.wwebjs_cache
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8787/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -26,10 +36,36 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: "10m"
-        max-file: "5"
+        max-size: '10m'
+        max-file: '5'
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ['public-api']
+    restart: unless-stopped
+    init: true
+    environment:
+      DASHBOARD_API_DOMAIN: ${DASHBOARD_API_DOMAIN:?Set DASHBOARD_API_DOMAIN to a DNS name pointing at this VPS}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      bot:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
 
 volumes:
   montemar-data:
   montemar-session:
   montemar-cache:
+  caddy-data:
+  caddy-config:

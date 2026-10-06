@@ -1,5 +1,6 @@
 FROM node:22-bookworm-slim AS dependencies
 WORKDIR /app
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci
@@ -11,6 +12,7 @@ RUN npm run build
 
 FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production \
+    PUPPETEER_SKIP_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
     DATABASE_PATH=/app/data/montemar.sqlite \
     DASHBOARD_API_HOST=0.0.0.0

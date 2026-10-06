@@ -4,6 +4,8 @@ Bot local de WhatsApp para gestionar la convocatoria del partido semanal de los 
 
 > **Importante:** `whatsapp-web.js` automatiza WhatsApp Web y no es una API oficial de WhatsApp. WhatsApp puede rechazar la vinculación o limitar una cuenta. No existe un ajuste de código que garantice el emparejamiento si WhatsApp bloquea el cliente; no intentes evadir un bloqueo.
 
+Consulta el [roadmap del proyecto](./docs/roadmap.md) para ver el historial de avances, el estado actual y las tareas pendientes.
+
 ## Requisitos e instalación
 
 - Node.js 20 o posterior y npm.
@@ -16,22 +18,26 @@ Copy-Item .env.example .env
 
 Edita `.env` antes de arrancar:
 
-| Variable | Uso |
-| --- | --- |
-| `MONTEMAR_GROUP_ID` | JID del grupo autorizado (`...@g.us`). Mientras esté vacío, el bot imprime los IDs de grupos detectados y no responde a mensajes. |
-| `ADMIN_PHONE_NUMBERS` | Números internacionales separados por coma, por ejemplo `34600112233,34600999888`. También acepta JID `@c.us`. |
-| `TIMEZONE` | Zona horaria IANA para cron, por defecto `Europe/Madrid`. |
-| `DATABASE_PATH` | Archivo SQLite local, por defecto `./data/montemar.sqlite`. |
-| `PUPPETEER_EXECUTABLE_PATH` | Ruta opcional a Chrome/Chromium ya instalado; si no se configura, se detectan ubicaciones habituales del sistema. |
-| `MATCH_CAPACITY` | Plazas, normalmente `10` o `14`; por defecto `14`. |
-| `MATCH_TIME` | Hora local del partido `HH:MM`; por defecto `20:00`. |
-| `PITCH_LOCATION` | Ubicación mostrada en avisos; por defecto `Cancha Montemar, Alicante`. |
-| `FEE_PER_PLAYER` | Importe fijo opcional en euros. Tiene prioridad sobre `PITCH_COST`. |
-| `PITCH_COST` | Coste total de pista opcional; cuando se configura, se divide entre los convocados actuales. |
-| `DASHBOARD_API_HOST` / `DASHBOARD_API_PORT` | Bind local del endpoint de solo lectura para el panel. En local usa `127.0.0.1:8787`; en Docker se configura el bind interno `0.0.0.0`. |
-| `DASHBOARD_API_TOKEN` | Token secreto que protege el API del bot. Si está vacío, el endpoint no arranca. Usa una cadena aleatoria larga y no la compartas. |
+| Variable                                    | Uso                                                                                                                                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MONTEMAR_GROUP_ID`                         | JID del grupo autorizado (`...@g.us`). Mientras esté vacío, el bot imprime los IDs de grupos detectados y no responde a mensajes.                          |
+| `ADMIN_PHONE_NUMBERS`                       | Números internacionales separados por coma, por ejemplo `34600112233,34600999888`. También acepta JID `@c.us`.                                             |
+| `TIMEZONE`                                  | Zona horaria IANA para cron, por defecto `Europe/Madrid`.                                                                                                  |
+| `DATABASE_PATH`                             | Archivo SQLite local, por defecto `./data/montemar.sqlite`.                                                                                                |
+| `PUPPETEER_EXECUTABLE_PATH`                 | Ruta opcional a Chrome/Chromium ya instalado; si no se configura, se detectan ubicaciones habituales del sistema.                                          |
+| `MATCH_CAPACITY`                            | Plazas, normalmente `10` o `14`; por defecto `14`.                                                                                                         |
+| `MATCH_TIME`                                | Hora local del partido `HH:MM`; por defecto `20:00`.                                                                                                       |
+| `PITCH_LOCATION`                            | Ubicación mostrada en avisos; por defecto `Cancha Montemar, Alicante`.                                                                                     |
+| `FEE_PER_PLAYER`                            | Importe fijo opcional en euros. Tiene prioridad sobre `PITCH_COST`.                                                                                        |
+| `PITCH_COST`                                | Coste total de pista opcional; cuando se configura, se divide entre los convocados actuales.                                                               |
+| `DASHBOARD_API_ENABLED`                     | Activa el API junto con el bot; por defecto `true`. En el desarrollo local puede ponerse a `false` para ejecutar `npm run dev:dashboard-api` por separado. |
+| `DASHBOARD_API_HOST` / `DASHBOARD_API_PORT` | Bind y puerto del endpoint de solo lectura. Usa `127.0.0.1` localmente; Docker lo enlaza dentro de su red privada.                                         |
+| `DASHBOARD_API_TOKEN`                       | Token largo y aleatorio que protege el API. Si está vacío, `/api/dashboard` responde `503`; no expongas el puerto sin HTTPS.                               |
+| `DASHBOARD_API_DOMAIN`                      | Nombre DNS que apunta al VPS; Caddy lo usa para HTTPS automático cuando se inicia el perfil Docker `public-api`.                                           |
 
 Inicia el bot con `npm run dev` durante el desarrollo o `npm run build` seguido de `npm start` para producción. En el primer inicio, escanea el QR del terminal desde WhatsApp → **Dispositivos vinculados** → **Vincular un dispositivo**. La sesión se conserva localmente en `.wwebjs_auth/`.
+
+Para desarrollar con el bot y el dashboard en procesos separados, pon `DASHBOARD_API_ENABLED=false` y configura `DASHBOARD_API_HOST=127.0.0.1` / `DASHBOARD_API_PORT=8790` en `.env`. Arranca en terminales separadas `npm run dev`, `npm run dev:dashboard-api` y `npm run dev:web`. El API independiente comparte la SQLite local y evita tener que reiniciar WhatsApp para reiniciar el panel. En producción Docker, Compose vuelve a activar el API integrado en el proceso único del bot.
 
 Si npm avisa que bloqueó scripts de instalación, autoriza solo los paquetes necesarios y vuelve a instalar:
 
@@ -58,60 +64,60 @@ En el grupo, escribe `/ayuda` para ver la lista correspondiente a tu rol. Los co
 
 ### Para todos los jugadores
 
-| Comando | Acción |
-| --- | --- |
-| `/voy` o `+1` | Apuntarse. Reacciona 👍 si entra en convocados o ⏳ si queda en suplentes. |
-| `/mebajo` o `-1` | Darse de baja (reacción ❌). Si libera plaza, se avisa y menciona al suplente promocionado. |
-| `/lista` | Ver fecha, estado de la convocatoria, plazas confirmadas y suplentes por orden. |
-| `/jugadores` o `/plantilla` | Ver los perfiles de todos los jugadores registrados y sus partidos, asistencia y balance V/E/D. |
-| `/historial [1-20]` | Ver número total de partidos jugados, balance de resultados, goles, asistencias y los últimos resultados (por defecto, 5). |
-| `/perfil GK 7.5` | Actualizar tu perfil. Posiciones: `GK`, `DEF`, `MID`, `FWD`; nivel: `1`–`10`. |
-| `/pague` | Avisar con una reacción 👀; queda pendiente de confirmación administrativa. También se reconocen capturas con pie de foto que indique Bizum/pago. |
-| `/stats` | Ver tus partidos, asistencia, balance de victorias/empates/derrotas y rating. |
-| `/stats @jugador` | Consultar las estadísticas de otro jugador. |
-| `/mvp @jugador` | Votar al MVP durante las 2 horas posteriores al registro del resultado. El voto se puede cambiar. |
-| `/ayuda` | Ver los comandos disponibles para tu rol. |
-| `/id` | Consultar el identificador del grupo actual. |
+| Comando                     | Acción                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/voy` o `+1`               | Apuntarse. Reacciona 👍 si entra en convocados o ⏳ si queda en suplentes.                                                                        |
+| `/mebajo` o `-1`            | Darse de baja (reacción ❌). Si libera plaza, se avisa y menciona al suplente promocionado.                                                       |
+| `/lista`                    | Ver fecha, estado de la convocatoria, plazas confirmadas y suplentes por orden.                                                                   |
+| `/jugadores` o `/plantilla` | Ver los perfiles de todos los jugadores registrados y sus partidos, asistencia y balance V/E/D.                                                   |
+| `/historial [1-20]`         | Ver número total de partidos jugados, balance de resultados, goles, asistencias y los últimos resultados (por defecto, 5).                        |
+| `/perfil GK 7.5`            | Actualizar tu perfil. Posiciones: `GK`, `DEF`, `MID`, `FWD`; nivel: `1`–`10`.                                                                     |
+| `/pague`                    | Avisar con una reacción 👀; queda pendiente de confirmación administrativa. También se reconocen capturas con pie de foto que indique Bizum/pago. |
+| `/stats`                    | Ver tus partidos, asistencia, balance de victorias/empates/derrotas y rating.                                                                     |
+| `/stats @jugador`           | Consultar las estadísticas de otro jugador.                                                                                                       |
+| `/mvp @jugador`             | Votar al MVP durante las 2 horas posteriores al registro del resultado. El voto se puede cambiar.                                                 |
+| `/ayuda`                    | Ver los comandos disponibles para tu rol.                                                                                                         |
+| `/id`                       | Consultar el identificador del grupo actual.                                                                                                      |
 
 ### Solo administradores
 
-| Comando | Acción |
-| --- | --- |
-| `/convocar @jugador` | Añadir manualmente a un jugador a convocados o suplentes; se usa el nombre de su perfil de WhatsApp. Repetir el comando actualiza el nombre de un jugador ya apuntado. |
-| `/retirar @jugador` | Retirar a un jugador; si libera plaza, promociona al primer suplente. |
-| `/armar_equipos` | Crear equipos equilibrados por posición y nivel; guarda la composición para el resultado. |
-| `/pagado @jugador` | Confirmar el pago del jugador mencionado; la respuesta muestra su nombre de perfil. |
-| `/deudores` | Publicar los nombres de los convocados con pago pendiente o por confirmar. |
-| `/reset_pagos` | Marcar como pendientes todos los pagos del partido activo. |
-| `/cerrar` | Cerrar la convocatoria y bloquear nuevas altas/bajas. |
-| `/abrir_convocatoria` | Abrir o reabrir el jueves que corresponda: antes de la hora del partido de este jueves conserva esta fecha; después, elige el siguiente jueves. |
-| `/cancelar_convocatoria CONFIRMAR` | Cancelar el partido activo y borrar su lista y pagos. Si se reabre antes de la fecha, conserva ese jueves; si ya pasó, abre el siguiente. |
-| `/resultado 3-2` | Registrar los goles de Equipo A y B, actualizar ratings y abrir la votación MVP. |
-| `/no_show @jugador` | Marcar como no presentado a un jugador del último partido registrado. |
-| `/nuevo_partido` | Alias administrativo de `/abrir_convocatoria`. Selecciona el próximo jueves según la fecha actual; no requiere que ya se haya registrado un resultado. |
-| `/borrar_partido AAAA-MM-DD CONFIRMAR` | (Admin) Borrar únicamente la convocatoria de esa fecha y sus datos asociados. Para descartar un partido de prueba, por ejemplo `/borrar_partido 2026-10-08 CONFIRMAR`. Si tenía resultado, restaura los ratings previos. No permite borrarlo si hay cambios de rating posteriores para los mismos jugadores. |
-| `/registrar_jugador 34600112233 GK 7.5 Nombre Apellido` | Registrar o actualizar un jugador, su teléfono, posición y nivel. Teléfono con prefijo internacional, sin `+`. |
+| Comando                                                 | Acción                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/convocar @jugador`                                    | Añadir manualmente a un jugador a convocados o suplentes; se usa el nombre de su perfil de WhatsApp. Repetir el comando actualiza el nombre de un jugador ya apuntado.                                                                                                                                       |
+| `/retirar @jugador`                                     | Retirar a un jugador; si libera plaza, promociona al primer suplente.                                                                                                                                                                                                                                        |
+| `/armar_equipos`                                        | Crear equipos equilibrados por posición y nivel; guarda la composición para el resultado.                                                                                                                                                                                                                    |
+| `/pagado @jugador`                                      | Confirmar el pago del jugador mencionado; la respuesta muestra su nombre de perfil.                                                                                                                                                                                                                          |
+| `/deudores`                                             | Publicar los nombres de los convocados con pago pendiente o por confirmar.                                                                                                                                                                                                                                   |
+| `/reset_pagos`                                          | Marcar como pendientes todos los pagos del partido activo.                                                                                                                                                                                                                                                   |
+| `/cerrar`                                               | Cerrar la convocatoria y bloquear nuevas altas/bajas.                                                                                                                                                                                                                                                        |
+| `/abrir_convocatoria`                                   | Abrir o reabrir el jueves que corresponda: antes de la hora del partido de este jueves conserva esta fecha; después, elige el siguiente jueves.                                                                                                                                                              |
+| `/cancelar_convocatoria CONFIRMAR`                      | Cancelar el partido activo y borrar su lista y pagos. Si se reabre antes de la fecha, conserva ese jueves; si ya pasó, abre el siguiente.                                                                                                                                                                    |
+| `/resultado 3-2`                                        | Registrar los goles de Equipo A y B, actualizar ratings y abrir la votación MVP.                                                                                                                                                                                                                             |
+| `/no_show @jugador`                                     | Marcar como no presentado a un jugador del último partido registrado.                                                                                                                                                                                                                                        |
+| `/nuevo_partido`                                        | Alias administrativo de `/abrir_convocatoria`. Selecciona el próximo jueves según la fecha actual; no requiere que ya se haya registrado un resultado.                                                                                                                                                       |
+| `/borrar_partido AAAA-MM-DD CONFIRMAR`                  | (Admin) Borrar únicamente la convocatoria de esa fecha y sus datos asociados. Para descartar un partido de prueba, por ejemplo `/borrar_partido 2026-10-08 CONFIRMAR`. Si tenía resultado, restaura los ratings previos. No permite borrarlo si hay cambios de rating posteriores para los mismos jugadores. |
+| `/registrar_jugador 34600112233 GK 7.5 Nombre Apellido` | Registrar o actualizar un jugador, su teléfono, posición y nivel. Teléfono con prefijo internacional, sin `+`.                                                                                                                                                                                               |
 
 ## Panel privado de estadísticas (Vercel)
 
-El panel Next.js está en `apps/web`. Por seguridad y sencillez operativa, Vercel *no* abre ni monta el SQLite local y tampoco recibe credenciales de base de datos: el daemon del bot ofrece un API HTTP de solo lectura protegido con `DASHBOARD_API_TOKEN`, y las rutas servidoras de Next.js lo consultan desde Vercel. El navegador nunca recibe ese token. El API no publica JID/números telefónicos (usa identificadores opacos); los datos personales, la plantilla y el estado de pagos del grupo requieren la contraseña del panel.
+El panel Next.js está en `apps/web`. Por seguridad y sencillez operativa, Vercel _no_ abre ni monta el SQLite local y tampoco recibe credenciales de base de datos: el daemon del bot ofrece un API HTTP de solo lectura protegido con `DASHBOARD_API_TOKEN`, y las rutas servidoras de Next.js lo consultan desde Vercel. El navegador nunca recibe ese token. El API no publica JID/números telefónicos (usa identificadores opacos); los datos personales, la plantilla y el estado de pagos del grupo requieren la contraseña del panel.
 
 Para desarrollo local, instala también sus dependencias con `npm install --prefix apps/web`; Vercel las instala desde el `package-lock.json` de `apps/web` al desplegar esa carpeta como Root Directory.
 
 ### Despliegue recomendado
 
-1. Publica el daemon en un VPS estable con Docker Compose o PM2. Configura `DASHBOARD_API_TOKEN` como un secreto aleatorio fuerte y fija `DASHBOARD_API_HOST=127.0.0.1` si un proxy TLS inverso corre en el mismo host. En Docker, Compose configura el bind interno y publica el puerto únicamente en loopback del host.
-2. Expón `/api/dashboard` mediante HTTPS (por ejemplo, un proxy TLS en el VPS) y limita ese proxy a las rutas del API; `/health` es una comprobación sin datos privados. No publiques el puerto HTTP sin TLS directamente en Internet. Comprueba desde el servidor que `https://TU_HOST/api/dashboard` responde `401` sin token.
+1. Publica el daemon en un VPS estable con Docker Compose. Añade a `.env` un `DASHBOARD_API_TOKEN` aleatorio fuerte y `DASHBOARD_API_DOMAIN=api.tu-dominio`. Apunta el registro DNS de ese subdominio a la IP del VPS y permite tráfico TCP 80/443; no abras el puerto 8787 al público.
+2. Ejecuta `docker compose --profile public-api up -d --build`. El perfil publica Caddy, que obtiene/renueva HTTPS automáticamente y solo enruta `/api/dashboard` y `/health` hacia el daemon. Verifica que `https://api.tu-dominio/api/dashboard` responde `401` sin el token. La ruta `/health` no contiene datos privados.
 3. Importa el repositorio en Vercel y selecciona `apps/web` como **Root Directory** (framework Next.js). Añade estos secretos/valores en Vercel:
 
-   | Variable Vercel | Valor |
-   | --- | --- |
-   | `BOT_API_URL` | URL base HTTPS del proxy del bot, sin `/api/dashboard`. |
-   | `BOT_API_TOKEN` | El mismo valor configurado como `DASHBOARD_API_TOKEN` en el VPS. |
-   | `DASHBOARD_ACCESS_PASSWORD` | Contraseña fuerte y exclusiva para el acceso privado del panel. |
+   | Variable Vercel             | Valor                                                                                                           |
+   | --------------------------- | --------------------------------------------------------------------------------------------------------------- |
+   | `BOT_API_URL`               | URL base HTTPS del proxy del bot, sin `/api/dashboard`.                                                         |
+   | `BOT_API_TOKEN`             | El mismo valor configurado como `DASHBOARD_API_TOKEN` en el VPS; no generes dos tokens distintos para este par. |
+   | `DASHBOARD_ACCESS_PASSWORD` | Contraseña fuerte y exclusiva para el acceso privado del panel.                                                 |
 
 4. Activa también **Vercel Deployment Protection** para preview/producción. La contraseña del panel no reemplaza la protección de despliegue. El panel incluye clasificación, perfiles, convocados, suplentes, estados de pago y los 20 resultados recientes; actualiza automáticamente cada 60 segundos. Si no hay partido o resultados, muestra un estado vacío real.
-5. En local, deja `BOT_API_URL` apuntando al API del bot y configura `DASHBOARD_ACCESS_PASSWORD`, `BOT_API_URL` y `BOT_API_TOKEN` en el entorno del proceso web (nunca en un archivo versionado). En PowerShell:
+5. En local, `apps/web/.env.local` contiene la configuración del proceso web y está excluido de Git. Para una instalación nueva, configura `DASHBOARD_ACCESS_PASSWORD`, `BOT_API_URL` y `BOT_API_TOKEN` ahí; el token debe coincidir con el del API. En PowerShell:
 
    ```powershell
    $env:DASHBOARD_ACCESS_PASSWORD = "contraseña-local-fuerte"
@@ -128,14 +134,17 @@ La separación API/Vercel mantiene SQLite en el único proceso que escribe, evit
 
 ### Docker Compose
 
-Instala Docker Engine y el plugin Compose en un VPS, completa `.env` (incluido `DASHBOARD_API_TOKEN`) y ejecuta:
+Instala Docker Engine y el plugin Compose en un VPS, completa `.env` (incluidos `DASHBOARD_API_TOKEN` y `DASHBOARD_API_DOMAIN`) y comprueba primero el archivo:
 
 ```bash
-docker compose up -d --build
+docker compose config
+docker compose --profile public-api up -d --build
 docker compose logs -f bot
 ```
 
-La primera vez, vincula WhatsApp escaneando el QR desde el terminal/log. SQLite, sesión y caché del navegador se conservan en volúmenes Docker. Haz copia de seguridad periódica del volumen de datos y de la sesión; protege esta última como credencial. Chromium y sus dependencias se incluyen en la imagen. El contenedor es de un solo proceso, reinicia automáticamente y no publica el API fuera de `127.0.0.1`.
+La primera vez, vincula WhatsApp escaneando el QR desde el terminal/log. No ejecutes a la vez otra instancia del bot con la misma sesión/cuenta: detén primero la instancia local, valida el respaldo y completa la vinculación en el VPS. SQLite, sesión, caché de Chromium y certificados de Caddy se conservan en volúmenes Docker. Haz copia de seguridad periódica de los volúmenes de datos y sesión; protege la sesión como credencial. Chromium y sus dependencias se incluyen en la imagen. Los contenedores reinician automáticamente y el API del bot no queda publicado directamente en Internet.
+
+Para publicar también el dashboard en Vercel, importa el repositorio después de subir la rama a GitHub, selecciona `apps/web` como Root Directory y configura las variables de entorno indicadas arriba. El panel puede desplegarse en Vercel sin que el PC esté encendido; el bot y su API deben permanecer activos en el VPS. La sesión de WhatsApp no puede ejecutarse en Vercel porque requiere un proceso persistente y Chromium.
 
 ### PM2 en un VPS Linux
 

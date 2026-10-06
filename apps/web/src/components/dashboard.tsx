@@ -620,7 +620,7 @@ export function Dashboard({
             <span>
               {data.currentMatch.status === 'CANCELLED'
                 ? 'CANCELADO'
-                : 'JUEVES · 20:00'}
+                : `JUEVES · ${data.currentMatch.time}`}
             </span>
           </div>
         </div>

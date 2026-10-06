@@ -17,3 +17,4 @@ apps/web/out/
 apps/web/coverage/
 *.tsbuildinfo
 logs/
+.vercel/
