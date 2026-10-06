@@ -72,6 +72,7 @@ Estado del proyecto al **6 de octubre de 2026**. Este documento recoge la evoluc
 - [x] Inicializar el repositorio Git y crear las ramas `main`, `develop` y `feature/ux-improvements-and-vercel-dashboard`.
 - [x] Crear el commit inicial de bootstrap y dejar activa la rama de feature solicitada.
 - [x] Publicar en GitHub el commit `8712a30` de preparación para despliegue en la rama feature; no se creó PR ni se fusionó a `develop`/`main`.
+- [x] Verificar en GitHub Actions que el workflow CI terminó correctamente para la rama feature (tests, lint, tipos y builds).
 - [x] Validar el código con 31 pruebas pasando, lint, TypeScript web, builds de bot+web y auditoría web sin vulnerabilidades; parsear YAML de Compose/CI. La auditoría de producción del bot sigue reportando 9 vulnerabilidades altas y el YAML aún necesita validación real con Docker.
 - [~] Mantener `http://localhost:3000` como preview mientras los procesos locales estén activos; la contraseña del preview está en `apps/web/.env.local`, excluido de Git.
 - [ ] Validar Docker Compose/Caddy y construir/arrancar las imágenes en un equipo con Docker.
@@ -79,7 +80,6 @@ Estado del proyecto al **6 de octubre de 2026**. Este documento recoge la evoluc
 - [ ] Desplegar el daemon en un VPS y conservar de forma segura la base SQLite, la sesión de WhatsApp y sus copias de seguridad.
 - [ ] Probar desde fuera del VPS HTTPS, rechazo de solicitudes no autenticadas, salud y disponibilidad del endpoint.
 - [ ] Desplegar `apps/web` en Vercel, configurar sus secretos del lado servidor y activar Deployment Protection.
-- [ ] Confirmar en GitHub Actions que el workflow nuevo termina correctamente en la rama remota.
 - [ ] Completar la integración del feature mediante Pull Request a `develop`; tras pruebas de integración, fusionar a `main` y crear una etiqueta semántica de release.
 - [ ] Revisar y decidir cómo corregir las **9 vulnerabilidades altas** que `npm audit --omit=dev` reporta en `basic-ftp` y `extract-zip`, transitivas de `puppeteer@24.38.0` que fija `whatsapp-web.js@1.34.7`. No forzar el downgrade sugerido por npm sin comprobar WhatsApp en una cuenta de prueba. La auditoría de la web no presentó vulnerabilidades.
 
