@@ -71,6 +71,7 @@ Estado del proyecto al **6 de octubre de 2026**. Este documento recoge la evoluc
 - [x] Documentar variables de entorno, operación, seguridad, Vercel, Compose/Caddy y flujo de ramas en `README.md`.
 - [x] Inicializar el repositorio Git y crear las ramas `main`, `develop` y `feature/ux-improvements-and-vercel-dashboard`.
 - [x] Crear el commit inicial de bootstrap y dejar activa la rama de feature solicitada.
+- [x] Publicar en GitHub el commit `8712a30` de preparación para despliegue en la rama feature; no se creó PR ni se fusionó a `develop`/`main`.
 - [x] Validar el código con 31 pruebas pasando, lint, TypeScript web, builds de bot+web y auditoría web sin vulnerabilidades; parsear YAML de Compose/CI. La auditoría de producción del bot sigue reportando 9 vulnerabilidades altas y el YAML aún necesita validación real con Docker.
 - [~] Mantener `http://localhost:3000` como preview mientras los procesos locales estén activos; la contraseña del preview está en `apps/web/.env.local`, excluido de Git.
 - [ ] Validar Docker Compose/Caddy y construir/arrancar las imágenes en un equipo con Docker.
